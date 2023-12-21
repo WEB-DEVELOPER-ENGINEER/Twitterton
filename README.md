@@ -31,8 +31,10 @@ You can customize the prompts that are used to generate the Tweets. Under the pr
 ## Authors
 
 Mohamed Ali - [Github](https://github.com/WEB-DEVELOPER-ENGINEER)
+
 Omar Elshaer - [Github](https://github.com/Omarelshaer2)
-Mohamed Ezzat -
+
+Mohamed Ezzat - [Github](https://github.com/mea800)
 
 ## License
 
