@@ -1,0 +1,4 @@
+venv/
+.env
+tweet_history
+idea_bank
