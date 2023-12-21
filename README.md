@@ -21,7 +21,7 @@ To use the Tweet Scheduler Web App, follow these steps:
 5. Start the worker script (`tweet.py`):
    ```bash
    python tweet.py
-![Flask Web-App](img.png)
+![Flask Web-App](img.PNG)
 
 ## Customizing
 
