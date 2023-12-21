@@ -28,6 +28,12 @@ To use the Tweet Scheduler Web App, follow these steps:
 You can customize the prompts that are used to generate the Tweets. Under the prompts folder you will find the following file:
 - `concept.txt` - This file contains the prompt that is used to generate the Tweet.
 
+## Authors
+
+Mohamed Ali - [Github](https://github.com/WEB-DEVELOPER-ENGINEER)
+Omar Elshaer - [Github](https://github.com/Omarelshaer2)
+Mohamed Ezzat -
+
 ## License
 
 This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for more information.
