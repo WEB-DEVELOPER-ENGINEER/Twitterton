@@ -1,7 +1,7 @@
 from flask import Flask, render_template, request, redirect
 from datetime import datetime, timedelta
 from flask_sqlalchemy import SQLAlchemy
-from .twai.tweet import main
+from .twai.tweet_assembly import get_tweet
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:''@localhost/tweetdb'
@@ -70,7 +70,7 @@ def add_tweet_ByAi():
     date_time_obj, error_code = get_date_time(time)
     if error_code is not None:
         return error_code
-    tweet = main(content, openai_api_key)
+    tweet = get_tweet(content, openai_api_key)
     new_tweet = Tweet(content=tweet, time=date_time_obj, status=False, consumer_key=consumer_key, consumer_secret=consumer_secret, access_token=access_token, access_secret=access_secret, openai_api_key=openai_api_key)
     db.session.add(new_tweet)
     db.session.commit()
