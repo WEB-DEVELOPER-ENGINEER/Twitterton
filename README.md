@@ -25,7 +25,7 @@ To use the Tweet Scheduler Web App, follow these steps:
 
 ## Customizing
 
-You can customize the prompts that are used to generate the Tweets. Under the prompts folder you will find the following file:
+You can customize the prompts that are used to generate the Tweets. Under the twai folder you will find the following file:
 - `concept.txt` - This file contains the prompt that is used to generate the Tweet.
 
 ## Authors
