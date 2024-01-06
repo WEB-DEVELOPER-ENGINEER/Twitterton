@@ -1,14 +1,28 @@
-from flask import Flask, render_template, request, redirect
+from flask import Flask, render_template, request, session, redirect, url_for, flash
 from datetime import datetime, timedelta
 from flask_sqlalchemy import SQLAlchemy
 from .twai.tweet_assembly import get_tweet
+from .form import RegisterForm, LoginForm
+from .decorators import login_required
+import bcrypt
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:''@localhost/tweetdb'
+app.config['SECRET_KEY'] = 'your_secret_key_here'
 db = SQLAlchemy(app)
+
+class Author(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    fullname = db.Column(db.String(80))
+    email = db.Column(db.String(35), unique=True)
+    username = db.Column(db.String(25), unique=True)
+    password = db.Column(db.String(60))
+    is_author = db.Column(db.Boolean)
+    tweets = db.relationship('Tweet', backref='author', lazy='dynamic')
 
 class Tweet(db.Model):
     id = db.Column(db.Integer, primary_key=True)
+    author_id = db.Column(db.Integer, db.ForeignKey('author.id'))
     content = db.Column(db.String(280), nullable=False)
     time = db.Column(db.DateTime, nullable=False)
     status = db.Column(db.Boolean, default=False)
@@ -32,9 +46,11 @@ def get_date_time(date_time_str):
     return date_time_obj, error_code
 
 @app.route("/")
+@login_required
 def tweet_list():
-    tweets = Tweet.query.order_by(Tweet.time.desc()).all()
-    n_open_tweets = Tweet.query.filter_by(status=False).count()
+    author = Author.query.filter_by(username=session['username']).first()
+    tweets = Tweet.query.filter_by(author_id=author.id).order_by(Tweet.time.desc()).all()
+    n_open_tweets = Tweet.query.filter_by(author_id=author.id).count()
     return render_template('index.html', tweets=tweets, n_open_tweets=n_open_tweets)
 
 
@@ -51,7 +67,7 @@ def add_tweet():
     date_time_obj, error_code = get_date_time(time)
     if error_code is not None:
         return error_code
-    new_tweet = Tweet(content=content, time=date_time_obj, status=False, consumer_key=consumer_key, consumer_secret=consumer_secret, access_token=access_token, access_secret=access_secret)
+    new_tweet = Tweet(content=content, author_id=Author.query.filter_by(username=session['username']).first().id, time=date_time_obj, status=False, consumer_key=consumer_key, consumer_secret=consumer_secret, access_token=access_token, access_secret=access_secret)
     db.session.add(new_tweet)
     db.session.commit()
     return redirect('/')
@@ -71,7 +87,7 @@ def add_tweet_ByAi():
     if error_code is not None:
         return error_code
     tweet = get_tweet(content, openai_api_key)
-    new_tweet = Tweet(content=tweet, time=date_time_obj, status=False, consumer_key=consumer_key, consumer_secret=consumer_secret, access_token=access_token, access_secret=access_secret, openai_api_key=openai_api_key)
+    new_tweet = Tweet(content=tweet, author_id=Author.query.filter_by(username=session['username']).first().id, time=date_time_obj, status=False, consumer_key=consumer_key, consumer_secret=consumer_secret, access_token=access_token, access_secret=access_secret, openai_api_key=openai_api_key)
     db.session.add(new_tweet)
     db.session.commit()
     return redirect('/')
@@ -82,6 +98,59 @@ def delete_tweet(tweet_id):
     db.session.delete(tweet)
     db.session.commit()
     return redirect('/')
+
+@app.route('/login', methods=('GET', 'POST'))
+def login():
+    form = LoginForm()
+    error = None
+    if request.method == 'GET' and request.args.get('next'):
+        session['next'] = request.args.get('next', None)
+    if form.validate_on_submit():
+        author = Author.query.filter_by(
+            username=form.username.data,
+            ).first()
+        if author:
+            if bcrypt.hashpw(form.password.data.encode('utf-8'), author.password.encode('utf-8')) == author.password.encode('utf-8'):
+                session['username'] = form.username.data
+                session['is_author'] = author.is_author
+                flash("User %s logged in" % author.username)
+                if 'next' in session:
+                    next = session.get('next')
+                    session.pop('next')
+                    return redirect('/')
+                else:
+                    return redirect('/')
+            else:
+                error = "Incorrect password"
+        else:
+            error = "Author not found"
+    return render_template('login.html', form=form, error=error)
+
+@app.route('/register', methods=('GET', 'POST'))
+def register():
+    form = RegisterForm()
+    if form.validate_on_submit():
+        salt = bcrypt.gensalt()
+        hashed_password = bcrypt.hashpw(form.password.data.encode('utf-8'), salt)
+        author = Author(
+            fullname=form.fullname.data,
+            email=form.email.data,
+            username=form.username.data,
+            password=hashed_password,
+            is_author=False
+        )
+        db.session.add(author)
+        db.session.commit()
+        return redirect('/login')
+    return render_template('register.html', form=form)
+
+@app.route('/logout', methods=['GET'])
+def logout():
+    session.pop('username')
+    session.pop('is_author')
+    flash("User logged out")
+    return redirect(url_for('login'))
+
 
 if __name__ == '__main__':
     with app.app_context():
